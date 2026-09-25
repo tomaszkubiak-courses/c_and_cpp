@@ -35,11 +35,47 @@ memory — reading it is undefined behavior (day 28), and the compiler may do su
 Integer types come in `signed` (default) and `unsigned` versions: an `unsigned int` can't be
 negative, so it holds 0 to about 4.29 billion instead of about ±2.1 billion.
 
-"Typical size" is the catch: the C standard only sets minimums. When the exact size matters, use
-the fixed-width types from `<stdint.h>`: `int8_t`, `uint8_t`, `int32_t`, `uint64_t` and so on.
+### Why only a "typical" size?
 
-`size_t` (from `<stddef.h>`, also available via `<stdio.h>`) is the unsigned type for sizes and
-counts; `sizeof` gives you one.
+The sizes in the table are what you'll see on today's common computers, but the C standard does not
+promise them. It only promises **minimums**: an `int` must be at least 16 bits (2 bytes), a `long`
+at least 32 bits (4 bytes), and so on. A compiler is allowed to make them bigger. That's why the
+table says `long` is 8 bytes on Linux but 4 on Windows — both follow the rules.
+
+Most of the time this doesn't matter: an `int` is plenty for a loop counter or someone's age. It
+matters when the exact number of bits is part of the job — for example, reading a file format that
+says "the next 4 bytes are a number". For those cases, `<stdint.h>` gives you types whose size is
+written in their name:
+
+```c
+#include <stdint.h>
+
+int8_t   a = -5;       // exactly 8 bits, signed:   -128 to 127
+uint8_t  b = 200;      // exactly 8 bits, unsigned:  0 to 255
+int32_t  c = 100000;   // exactly 32 bits, signed
+uint64_t d = 0;        // exactly 64 bits, unsigned
+```
+
+Read the name piece by piece: `u` means unsigned (no negatives), the number is how many bits, and
+`_t` just marks it as a type. So `uint8_t` is "unsigned, 8 bits" on every machine.
+
+### size_t: the type for sizes and counts
+
+`size_t` is a type with one job: holding the size of something in memory, or a count of things —
+"how many bytes", "how many elements". It is unsigned, because a size can never be negative, and it
+is guaranteed to be big enough for the largest object your program could have (on a 64-bit machine
+it is usually 8 bytes).
+
+You'll see it all the time because the standard library uses it. The `sizeof` operator (next
+section) gives its answer as a `size_t`:
+
+```c
+size_t n = sizeof(int);   // n is 4 on most machines
+printf("%zu\n", n);       // %zu is the printf specifier for size_t
+```
+
+It is defined in `<stddef.h>`, but `<stdio.h>` and `<stdlib.h>` provide it too, so you rarely need
+to include `<stddef.h>` just for `size_t`.
 
 ### sizeof and limits
 
